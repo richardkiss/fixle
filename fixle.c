@@ -74,16 +74,16 @@ static int fixLineEnds(FILE *in, FILE *out, const char *newLineEnd, struct eolst
     if (c == 0xd) {
       c = getc(in);
       if (c == EOF) {
-	atEnd = 1;
-	stats->mac_eol_count++;
-	goto writeEOL;
+        atEnd = 1;
+        stats->mac_eol_count++;
+        goto writeEOL;
       }
       if (c != 0xa) {
-	stats->mac_eol_count++;
-	c = ungetc(c, in);
-	/* we should never get an error here, but just in case... */
-	if (c < 0) return -1;
-	goto writeEOL;
+        stats->mac_eol_count++;
+        c = ungetc(c, in);
+        /* we should never get an error here, but just in case... */
+        if (c < 0) return -1;
+        goto writeEOL;
       }
       stats->dos_eol_count++;
       goto writeEOL;
@@ -185,10 +185,10 @@ int main(int argc, char *argv[])
       if (doCopy) {
         out = fdopen(mkstemp(tempname), "w+b");
         if (out == 0) {
-	  perror(tempname);
-	  continue;
-	}
-	unlink(tempname);
+          perror(tempname);
+          continue;
+        }
+        unlink(tempname);
       }
       fixLineEnds(in, out, eol, &stats);
       if (verbose) printf("%s: %d Unix LE, %d Mac LE, %d DOS LE\n", path, stats.unix_eol_count, stats.mac_eol_count, stats.dos_eol_count);
@@ -196,8 +196,8 @@ int main(int argc, char *argv[])
       rewind(out);
       fclose(in);
       if (out && copyFileToPath(out, path)<0) {
-	perror(path);
-	continue;
+        perror(path);
+        continue;
       }
       fclose(out);
     }
