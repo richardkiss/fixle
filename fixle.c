@@ -136,7 +136,8 @@ int main(int argc, char *argv[])
   char *eol = "\012";
   FILE *in, *out;
   struct eolstats stats;
-  char tempname[] = "fixleXXXXXXX";
+  char tempname[20];
+  const char *TEMPLATE = "tmp.fixleXXXXXXXXXX";
 
   while ((ch = getopt(argc, argv, "mdvnf")) != -1)
     switch (ch) {
@@ -183,6 +184,7 @@ int main(int argc, char *argv[])
     else {
       rewind(in);
       if (doCopy) {
+        strcpy(tempname, TEMPLATE);
         out = fdopen(mkstemp(tempname), "w+b");
         if (out == 0) {
           perror(tempname);
