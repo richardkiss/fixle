@@ -1,0 +1,9 @@
+Fix line endings (Mac, DOS, UNIX) in text files
+
+fixle is a free and open source, command line based and fast C utility to fix and
+unify line endings (Mac, DOS, UNIX) in text files. 
+
+To install:
+
+make
+./fixle
