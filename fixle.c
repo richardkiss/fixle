@@ -193,7 +193,7 @@ int main(int argc, char *argv[])
         unlink(tempname);
       }
       fixLineEnds(in, out, eol, &stats);
-      if (verbose) printf("%s: %d Unix LE, %d Mac LE, %d DOS LE\n", path, stats.unix_eol_count, stats.mac_eol_count, stats.dos_eol_count);
+      if (verbose) printf("%s: %ld Unix LE, %ld Mac LE, %ld DOS LE\n", path, stats.unix_eol_count, stats.mac_eol_count, stats.dos_eol_count);
 
       rewind(out);
       fclose(in);
