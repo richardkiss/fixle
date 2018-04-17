@@ -1,0 +1,10 @@
+[package]
+name = "fixle"
+version = "0.1.0"
+authors = ["Richard Kiss <him@richardkiss.com>"]
+
+[dependencies]
+
+[[bin]]
+name = "fixle"
+path = "src/fixle.rs"

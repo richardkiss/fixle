@@ -132,10 +132,14 @@ use std::fs::File;
 use std::io::prelude::Write;
 use std::io::prelude::Read;
 
+fn is_eol(b:u8) -> bool {
+    b == b'\r' || b == b'\n'
+}
+
+
 fn main() {
     let input_path = "input_path.txt";
     let output_path = "output_path.txt";
-    let input_eol = b"\n"[0];
     let output_eol = b"\r\n";
     let f_in = File::open(input_path).expect("can't open");
     let f_out = File::create(output_path).expect("can't open");
@@ -144,12 +148,34 @@ fn main() {
     let mut writer = BufWriter::new(f_out);
 
     let mut bytes = reader.bytes();
+    let mut cached_byte:Option<u8> = None;
+    let mac_eol = 0;
+    let dos_eol = 0;
+    let unix_eol = 0;
     loop {
+        if let Some(in_b) = cached_byte {
+            let r = writer.write(&[in_b]);
+            r.unwrap();
+            cached_byte = None;
+        }
         if let Some(result) = bytes.next() {
             if let Ok(in_b) = result {
                 let write_result = {
-                    if in_b == input_eol {
-                        writer.write(output_eol)
+                    if in_b == 0xd {
+                        if let Some(results) = bytes.next() {
+                            if let Ok(in_b) = result {
+                                if in_b != 0xa {
+                                    cached_byte = Some(u8);
+                                    mac_eol += 1;
+                                } else {
+                                    dos_eol += 1;
+                                }
+                            }
+                            writer.write(output_eol)
+                        } else if in_b == 0xa {
+                            unix_eolf += 1;
+                            writer.write(output_eol)
+                        }
                     } else {
                         writer.write(&[in_b])
                     }
