@@ -148,19 +148,18 @@ fn main() {
     let mut dos_eol = 0;
     let mut unix_eol = 0;
     loop {
-        let in_b: u8;
-        if let Some(cached_b) = cached_byte {
-                in_b = cached_b;
-                cached_byte = None;
-            } else {
-                if let Some(results) = bytes.next() {
-                    in_b = results.unwrap();
+        let next_b: u8;
+        next_b = match cached_byte {
+            Some(v) => v,
+            None => if let Some(results) = bytes.next() {
+                    results.unwrap()
                 } else {
                     break;
                 }
             };
+
         let write_result = {
-            if in_b == 0xd {
+            if next_b == 0xd {
                 if let Some(results) = bytes.next() {
                     if let Ok(next_b) = results {
                         if next_b != 0xa {
@@ -174,11 +173,11 @@ fn main() {
                 } else {
                     writer.write(output_eol)
                 }
-            } else if in_b == 0xa {
+            } else if next_b == 0xa {
                 unix_eol += 1;
                 writer.write(output_eol)
             } else {
-                writer.write(&[in_b])
+                writer.write(&[next_b])
             }
         };
         write_result.unwrap();
