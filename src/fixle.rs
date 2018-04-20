@@ -132,11 +132,6 @@ use std::fs::File;
 use std::io::prelude::Write;
 use std::io::prelude::Read;
 
-fn is_eol(b:u8) -> bool {
-    b == b'\r' || b == b'\n'
-}
-
-
 fn main() {
     let input_path = "input_path.txt";
     let output_path = "output_path.txt";
@@ -149,45 +144,46 @@ fn main() {
 
     let mut bytes = reader.bytes();
     let mut cached_byte:Option<u8> = None;
-    let mac_eol = 0;
-    let dos_eol = 0;
-    let unix_eol = 0;
+    let mut mac_eol = 0;
+    let mut dos_eol = 0;
+    let mut unix_eol = 0;
     loop {
-        if let Some(in_b) = cached_byte {
-            let r = writer.write(&[in_b]);
-            r.unwrap();
-            cached_byte = None;
-        }
-        if let Some(result) = bytes.next() {
-            if let Ok(in_b) = result {
-                let write_result = {
-                    if in_b == 0xd {
-                        if let Some(results) = bytes.next() {
-                            if let Ok(in_b) = result {
-                                if in_b != 0xa {
-                                    cached_byte = Some(u8);
-                                    mac_eol += 1;
-                                } else {
-                                    dos_eol += 1;
-                                }
-                            }
-                            writer.write(output_eol)
-                        } else if in_b == 0xa {
-                            unix_eolf += 1;
-                            writer.write(output_eol)
-                        }
-                    } else {
-                        writer.write(&[in_b])
-                    }
-                };
-                write_result.unwrap();
+        let in_b: u8;
+        if let Some(cached_b) = cached_byte {
+                in_b = cached_b;
+                cached_byte = None;
             } else {
-                break;
+                if let Some(results) = bytes.next() {
+                    in_b = results.unwrap();
+                } else {
+                    break;
+                }
+            };
+        let write_result = {
+            if in_b == 0xd {
+                if let Some(results) = bytes.next() {
+                    if let Ok(next_b) = results {
+                        if next_b != 0xa {
+                            cached_byte = Some(next_b);
+                            mac_eol += 1;
+                        } else {
+                            dos_eol += 1;
+                        }
+                    }
+                    writer.write(output_eol)
+                } else {
+                    writer.write(output_eol)
+                }
+            } else if in_b == 0xa {
+                unix_eol += 1;
+                writer.write(output_eol)
+            } else {
+                writer.write(&[in_b])
             }
-        } else {
-            break;
-        }
+        };
+        write_result.unwrap();
     }
+    println!("{}: {} Unix LE, {} Mac LE, {} DOS LE\n", input_path, unix_eol, mac_eol, dos_eol);
 
 }
 
