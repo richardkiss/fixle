@@ -5,13 +5,6 @@
 // #include <unistd.h>
 // #include <sys/stat.h>
 
-// struct eolstats
-// {
-//   long unix_eol_count;
-//   long mac_eol_count;
-//   long dos_eol_count;
-// };
-
 // static void usage()
 // {
 //   fprintf(stderr, "usage: fixle [-f] [-n] [-v] [-m | -d] files...\n");
@@ -57,57 +50,6 @@
 //   return 0;
 // }
 
-// static int fixLineEnds(FILE *in, FILE *out, const char *newLineEnd, struct eolstats *stats)
-// {
-//   int lineEndSize = strlen(newLineEnd);
-//   int c;
-//   int atEnd = 0;
-
-//   stats->unix_eol_count = 0;
-//   stats->mac_eol_count = 0;
-//   stats->dos_eol_count = 0;
-
-//   while (1) {
-//     c = getc(in);
-//     if (c == EOF) return 0;
-
-//     if (c == 0xd) {
-//       c = getc(in);
-//       if (c == EOF) {
-//         atEnd = 1;
-//         stats->mac_eol_count++;
-//         goto writeEOL;
-//       }
-//       if (c != 0xa) {
-//         stats->mac_eol_count++;
-//         c = ungetc(c, in);
-//         /* we should never get an error here, but just in case... */
-//         if (c < 0) return -1;
-//         goto writeEOL;
-//       }
-//       stats->dos_eol_count++;
-//       goto writeEOL;
-//     }
-//     else if (c == 0xa) {
-//       stats->unix_eol_count++;
-//       goto writeEOL;
-//     }
-
-//     if (out) { 
-//       c = putc(c, out);
-//       if (c < 0) return -1;
-//     }
-//     continue;
-//   writeEOL:
-//     if (out) {
-//       c = fwrite(newLineEnd, lineEndSize, 1, out);
-//       if (c < 0) return -1;
-//     }
-//     if (atEnd) return 0;
-//   }
-
-//   return 0;
-// }
 
 // static int copyFileToPath(FILE *original, char *path)
 // {
@@ -132,20 +74,22 @@ use std::fs::File;
 use std::io::prelude::Write;
 use std::io::prelude::Read;
 
-fn main() {
-    let input_path = "input_path.txt";
-    let output_path = "output_path.txt";
-    let output_eol = b"\r\n";
-    let f_in = File::open(input_path).expect("can't open");
-    let f_out = File::create(output_path).expect("can't open");
 
+#[derive(Debug)]
+struct Eolstats {
+    unix_eol_count: u32,
+    mac_eol_count: u32,
+    dos_eol_count: u32
+}
+
+
+fn fix_line_ends(f_in: File, f_out: File, output_eol: &[u8]) -> Eolstats {
+
+    let mut stats = Eolstats { unix_eol_count: 0, mac_eol_count: 0, dos_eol_count: 0};
     let reader = BufReader::new(f_in);
     let mut writer = BufWriter::new(f_out);
 
     let mut bytes = reader.bytes().peekable();
-    let mut mac_eol = 0;
-    let mut dos_eol = 0;
-    let mut unix_eol = 0;
     loop {
         let next_b: u8;
         next_b = match bytes.next() {
@@ -159,10 +103,10 @@ fn main() {
                 let v = bytes.peek();
                 if let Some(&Ok(extra_b)) = v {
                     if extra_b != 0xa {
-                        mac_eol += 1;
+                        stats.mac_eol_count += 1;
                     } else {
                         do_skip = true;
-                        dos_eol += 1;
+                        stats.dos_eol_count += 1;
                     }
                     writer.write(output_eol)
                 } else {
@@ -170,7 +114,7 @@ fn main() {
                 }
             },
             0xa => {
-                unix_eol += 1;
+                stats.unix_eol_count += 1;
                 writer.write(output_eol)
             },
             _ => {
@@ -182,7 +126,20 @@ fn main() {
         };
         write_result.unwrap();
     }
-    println!("{}: {} Unix LE, {} Mac LE, {} DOS LE\n", input_path, unix_eol, mac_eol, dos_eol);
+    stats
+}
+
+
+fn main() {
+    let input_path = "input_path.txt";
+    let output_path = "output_path.txt";
+    let output_eol = b"\r\n";
+    let f_in = File::open(input_path).expect("can't open");
+    let f_out = File::create(output_path).expect("can't open");
+
+    let stats = fix_line_ends(f_in, f_out, output_eol);
+
+    println!("{}: {} Unix LE, {} Mac LE, {} DOS LE\n", input_path, stats.unix_eol_count, stats.mac_eol_count, stats.dos_eol_count);
 
 }
 
