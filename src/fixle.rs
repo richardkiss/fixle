@@ -142,28 +142,25 @@ fn main() {
     let reader = BufReader::new(f_in);
     let mut writer = BufWriter::new(f_out);
 
-    let mut bytes = reader.bytes();
-    let mut cached_byte:Option<u8> = None;
+    let mut bytes = reader.bytes().peekable();
     let mut mac_eol = 0;
     let mut dos_eol = 0;
     let mut unix_eol = 0;
     loop {
         let next_b: u8;
-        next_b = match cached_byte {
-            Some(v) => v,
-            None => if let Some(results) = bytes.next() {
-                    results.unwrap()
-                } else {
-                    break;
-                }
-            };
+        next_b = match bytes.next() {
+            Some(v) => v.unwrap(),
+            None => break
+        };
 
+        let mut do_skip = false;
         let write_result = {
             if next_b == 0xd {
-                if let Some(results) = bytes.next() {
-                    if let Ok(next_b) = results {
-                        if next_b != 0xa {
-                            cached_byte = Some(next_b);
+                let v = bytes.peek();
+                if let Some(results) = v {
+                    if let &Ok(extra_b) = results {
+                        if extra_b != 0xa {
+                            do_skip = true;
                             mac_eol += 1;
                         } else {
                             dos_eol += 1;
@@ -181,6 +178,9 @@ fn main() {
             }
         };
         write_result.unwrap();
+        if do_skip {
+           bytes.next();
+        };
     }
     println!("{}: {} Unix LE, {} Mac LE, {} DOS LE\n", input_path, unix_eol, mac_eol, dos_eol);
 
