@@ -154,33 +154,33 @@ fn main() {
         };
 
         let mut do_skip = false;
-        let write_result = {
-            if next_b == 0xd {
+        let write_result = match next_b {
+            0xd => {
                 let v = bytes.peek();
-                if let Some(results) = v {
-                    if let &Ok(extra_b) = results {
-                        if extra_b != 0xa {
-                            do_skip = true;
-                            mac_eol += 1;
-                        } else {
-                            dos_eol += 1;
-                        }
+                if let Some(&Ok(extra_b)) = v {
+                    if extra_b != 0xa {
+                        mac_eol += 1;
+                    } else {
+                        do_skip = true;
+                        dos_eol += 1;
                     }
                     writer.write(output_eol)
                 } else {
                     writer.write(output_eol)
                 }
-            } else if next_b == 0xa {
+            },
+            0xa => {
                 unix_eol += 1;
                 writer.write(output_eol)
-            } else {
+            },
+            _ => {
                 writer.write(&[next_b])
             }
         };
-        write_result.unwrap();
         if do_skip {
            bytes.next();
         };
+        write_result.unwrap();
     }
     println!("{}: {} Unix LE, {} Mac LE, {} DOS LE\n", input_path, unix_eol, mac_eol, dos_eol);
 
