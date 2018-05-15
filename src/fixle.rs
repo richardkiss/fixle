@@ -97,21 +97,17 @@ fn fix_line_ends(f_in: File, f_out: File, output_eol: &[u8]) -> Eolstats {
             None => break
         };
 
-        let mut do_skip = false;
         let write_result = match next_b {
             0xd => {
-                let v = bytes.peek();
-                if let Some(&Ok(extra_b)) = v {
-                    if extra_b != 0xa {
-                        stats.mac_eol_count += 1;
-                    } else {
-                        do_skip = true;
+                if let Some(&Ok(extra_b)) = bytes.peek() {
+                    if extra_b == 0xa {
+                        bytes.next();
                         stats.dos_eol_count += 1;
+                    } else {
+                        stats.mac_eol_count += 1;
                     }
-                    writer.write(output_eol)
-                } else {
-                    writer.write(output_eol)
                 }
+                writer.write(output_eol)
             },
             0xa => {
                 stats.unix_eol_count += 1;
@@ -120,9 +116,6 @@ fn fix_line_ends(f_in: File, f_out: File, output_eol: &[u8]) -> Eolstats {
             _ => {
                 writer.write(&[next_b])
             }
-        };
-        if do_skip {
-           bytes.next();
         };
         write_result.unwrap();
     }
