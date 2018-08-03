@@ -1,3 +1,6 @@
+use std::io;
+use std::env;
+
 // #include <stdio.h>
 // #include <stdlib.h>
 // #include <string.h>
@@ -83,7 +86,7 @@ struct Eolstats {
 }
 
 
-fn fix_line_ends(f_in: File, f_out: File, output_eol: &[u8]) -> Eolstats {
+fn fix_line_ends(f_in: File, f_out: File, output_eol: &[u8]) -> Result<Eolstats, io::Error> {
 
     let mut stats = Eolstats { unix_eol_count: 0, mac_eol_count: 0, dos_eol_count: 0};
     let reader = BufReader::new(f_in);
@@ -107,32 +110,47 @@ fn fix_line_ends(f_in: File, f_out: File, output_eol: &[u8]) -> Eolstats {
                         stats.mac_eol_count += 1;
                     }
                 }
-                writer.write(output_eol).unwrap();
+                writer.write(output_eol)?;
             },
             Some(Ok(0xa)) => {
                 stats.unix_eol_count += 1;
-                writer.write(output_eol).unwrap();
+                writer.write(output_eol)?;
             },
             Some(Ok(x)) => {
-                writer.write(&[x]).unwrap();
+                writer.write(&[x])?;
             }
         };
     }
-    stats
+    Ok(stats)
+}
+
+fn open_and_fix(path_in: &String, path_out: &String, output_eol: &[u8]) -> Result<Eolstats, io::Error> {
+
+    let f_in = File::open(path_in)?;
+    let f_out = File::create(path_out)?;
+
+    fix_line_ends(f_in, f_out, output_eol)
 }
 
 
 fn main() {
-    let input_path = "input_path.txt";
-    let output_path = "output_path.txt";
     let output_eol = b"\r\n";
-    let f_in = File::open(input_path).expect("can't open");
-    let f_out = File::create(output_path).expect("can't open");
+    let args: Vec<String> = env::args().collect();
 
-    let stats = fix_line_ends(f_in, f_out, output_eol);
-
-    println!("{}: {} Unix LE, {} Mac LE, {} DOS LE\n", input_path, stats.unix_eol_count, stats.mac_eol_count, stats.dos_eol_count);
-
+    if args.len() == 3 {
+        let input_path = args[1].to_string().clone();
+        let output_path = args[2].to_string().clone();
+        match open_and_fix(&input_path, &output_path, output_eol) {
+            Ok(stats) => {
+                println!("{}: {} Unix LE, {} Mac LE, {} DOS LE\n", input_path, stats.unix_eol_count, stats.mac_eol_count, stats.dos_eol_count);
+            }
+            Err(e) => {
+                println!("failed: {}", e);
+            }
+        }
+    } else {
+        println!("wrong arg count");
+    }
 }
 
 
