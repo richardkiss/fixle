@@ -1,5 +1,5 @@
-use std::io;
 use std::env;
+use std::io;
 
 // #include <stdio.h>
 // #include <stdlib.h>
@@ -35,7 +35,6 @@ use std::env;
 //   if (f == 0) return -1;
 //   bytesRead = fread(buffer, 1, PREFIX_SIZE_TO_CHECK, f);
 //   if (bytesRead < 1) return 0; /* empty files are not binary */
-
 //   for (i=0;i<bytesRead;i++) {
 //     unsigned char c = buffer[i];
 //     if ((c==0) || (c > 0x7f)) nonAsciiCount++;
@@ -52,7 +51,6 @@ use std::env;
 //   }
 //   return 0;
 // }
-
 
 // static int copyFileToPath(FILE *original, char *path)
 // {
@@ -71,24 +69,25 @@ use std::env;
 //   return 0;
 // }
 
+use std::fs::File;
+use std::io::prelude::Read;
+use std::io::prelude::Write;
 use std::io::BufReader;
 use std::io::BufWriter;
-use std::fs::File;
-use std::io::prelude::Write;
-use std::io::prelude::Read;
-
 
 #[derive(Debug)]
 struct Eolstats {
     unix_eol_count: u32,
     mac_eol_count: u32,
-    dos_eol_count: u32
+    dos_eol_count: u32,
 }
 
-
 fn fix_line_ends(f_in: File, f_out: File, output_eol: &[u8]) -> Result<Eolstats, io::Error> {
-
-    let mut stats = Eolstats { unix_eol_count: 0, mac_eol_count: 0, dos_eol_count: 0};
+    let mut stats = Eolstats {
+        unix_eol_count: 0,
+        mac_eol_count: 0,
+        dos_eol_count: 0,
+    };
     let reader = BufReader::new(f_in);
     let mut writer = BufWriter::new(f_out);
 
@@ -97,10 +96,10 @@ fn fix_line_ends(f_in: File, f_out: File, output_eol: &[u8]) -> Result<Eolstats,
         match bytes.next() {
             None => {
                 break;
-            },
+            }
             Some(Err(_)) => {
                 break;
-            },
+            }
             Some(Ok(0xd)) => {
                 if let Some(&Ok(extra_b)) = bytes.peek() {
                     if extra_b == 0xa {
@@ -110,28 +109,26 @@ fn fix_line_ends(f_in: File, f_out: File, output_eol: &[u8]) -> Result<Eolstats,
                         stats.mac_eol_count += 1;
                     }
                 }
-                writer.write(output_eol)?;
-            },
+                writer.write_all(output_eol)?;
+            }
             Some(Ok(0xa)) => {
                 stats.unix_eol_count += 1;
-                writer.write(output_eol)?;
-            },
+                writer.write_all(output_eol)?;
+            }
             Some(Ok(x)) => {
-                writer.write(&[x])?;
+                writer.write_all(&[x])?;
             }
         };
     }
     Ok(stats)
 }
 
-fn open_and_fix(path_in: &String, path_out: &String, output_eol: &[u8]) -> Result<Eolstats, io::Error> {
-
+fn open_and_fix(path_in: &str, path_out: &str, output_eol: &[u8]) -> Result<Eolstats, io::Error> {
     let f_in = File::open(path_in)?;
     let f_out = File::create(path_out)?;
 
     fix_line_ends(f_in, f_out, output_eol)
 }
-
 
 fn main() {
     let output_eol = b"\r\n";
@@ -142,7 +139,10 @@ fn main() {
         let output_path = args[2].to_string().clone();
         match open_and_fix(&input_path, &output_path, output_eol) {
             Ok(stats) => {
-                println!("{}: {} Unix LE, {} Mac LE, {} DOS LE\n", input_path, stats.unix_eol_count, stats.mac_eol_count, stats.dos_eol_count);
+                println!(
+                    "{}: {} Unix LE, {} Mac LE, {} DOS LE\n",
+                    input_path, stats.unix_eol_count, stats.mac_eol_count, stats.dos_eol_count
+                );
             }
             Err(e) => {
                 println!("failed: {}", e);
@@ -152,7 +152,6 @@ fn main() {
         println!("wrong arg count");
     }
 }
-
 
 // int main(int argc, char *argv[])
 // {
