@@ -135,8 +135,8 @@ fn main() {
     let args: Vec<String> = env::args().collect();
 
     if args.len() == 3 {
-        let input_path = args[1].to_string().clone();
-        let output_path = args[2].to_string().clone();
+        let input_path: &str = &args[1];
+        let output_path: &str = &args[2];
         match open_and_fix(&input_path, &output_path, output_eol) {
             Ok(stats) => {
                 println!(
